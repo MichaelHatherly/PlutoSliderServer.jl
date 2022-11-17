@@ -432,6 +432,7 @@ function check_for_errored_cells(notebook_sessions, expected_errors)
         expected_errors_in_notebook = get(Set{Base.UUID}, expected_errors, shortpath)
         cell_results = original_state["cell_results"]
         for (uuid, state) in cell_results
+            uuid = isa(uuid, Base.UUID) ? uuid : Base.UUID(uuid)
             if state["errored"]
                 if uuid in expected_errors_in_notebook
                     @info "expected error in cell found" shortpath uuid
