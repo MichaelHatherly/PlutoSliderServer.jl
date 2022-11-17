@@ -176,6 +176,7 @@ function run_directory(
     notebook_paths::Union{Nothing,Vector{String}}=nothing,
     on_ready::Function=((args...) -> ()),
     config_toml_path::Union{String,Nothing}=default_config_path(),
+    expected_errors=nothing,
     kwargs...,
 )
 
@@ -380,6 +381,8 @@ function run_directory(
     write_index(notebook_sessions)
     refresh_until_synced(false)
 
+    check_for_errored_cells(notebook_sessions, expected_errors)
+
     should_watch = settings.SliderServer.enabled && settings.SliderServer.watch_dir
 
     watch_dir_task = Pluto.@asynclog if should_watch
@@ -418,6 +421,33 @@ function run_directory(
             @info "Server exited ✅"
         end
     end
+end
+
+function check_for_errored_cells(notebook_sessions, expected_errors)
+    expected_errors = @something(expected_errors, Dict{String,Set{Base.UUID}}())
+    unexpected_errors = Tuple{String,Base.UUID}[]
+    for session in notebook_sessions
+        original_state = session.run.original_state
+        shortpath = original_state["shortpath"]
+        expected_errors_in_notebook = get(Set{Base.UUID}, expected_errors, shortpath)
+        cell_results = original_state["cell_results"]
+        for (uuid, state) in cell_results
+            if state["errored"]
+                if uuid in expected_errors_in_notebook
+                    @info "expected error in cell found" shortpath uuid
+                else
+                    push!(unexpected_errors, (shortpath, uuid))
+                end
+            end
+        end
+    end
+    if !isempty(unexpected_errors)
+        for (shortpath, uuid) in unexpected_errors
+            @error "unexpected error in cell" shortpath uuid
+        end
+        throw(ErrorException("unexpected errors in cells, see logs."))
+    end
+    return nothing
 end
 
 """
