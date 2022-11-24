@@ -425,7 +425,7 @@ end
 
 function check_for_errored_cells(notebook_sessions, expected_errors)
     expected_errors = @something(expected_errors, Dict{String,Set{Base.UUID}}())
-    unexpected_errors = Tuple{String,Base.UUID}[]
+    unexpected_errors = []
     for session in notebook_sessions
         original_state = session.run.original_state
         shortpath = original_state["shortpath"]
