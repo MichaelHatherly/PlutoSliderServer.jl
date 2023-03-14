@@ -434,7 +434,9 @@ function check_for_errored_cells(notebook_sessions, expected_errors)
         for (uuid, state) in cell_results
             uuid = isa(uuid, Base.UUID) ? uuid : Base.UUID(uuid)
             if state["errored"]
-                msg = Base.Text(get(state["output"]["body"], "msg", "NO ERROR MESSAGE"))
+                body = state["output"]["body"]
+                msg = get(() -> get(body, "msg", "NO ERROR MESSAGE"), body, :msg) # Sometimes a Symbol... sometimes a String.
+                msg = Base.Text(msg)
                 if uuid in expected_errors_in_notebook
                     @info "expected error in cell found" shortpath uuid msg
                 else
