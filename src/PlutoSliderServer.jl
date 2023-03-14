@@ -434,17 +434,18 @@ function check_for_errored_cells(notebook_sessions, expected_errors)
         for (uuid, state) in cell_results
             uuid = isa(uuid, Base.UUID) ? uuid : Base.UUID(uuid)
             if state["errored"]
+                msg = Base.Text(get(state["output"]["body"], "msg", "NO ERROR MESSAGE"))
                 if uuid in expected_errors_in_notebook
-                    @info "expected error in cell found" shortpath uuid
+                    @info "expected error in cell found" shortpath uuid msg
                 else
-                    push!(unexpected_errors, (shortpath, uuid))
+                    push!(unexpected_errors, (shortpath, uuid, msg))
                 end
             end
         end
     end
     if !isempty(unexpected_errors)
-        for (shortpath, uuid) in unexpected_errors
-            @error "unexpected error in cell" shortpath uuid
+        for (shortpath, uuid, msg) in unexpected_errors
+            @error "unexpected error in cell" shortpath uuid msg
         end
         throw(ErrorException("unexpected errors in cells, see logs."))
     end
